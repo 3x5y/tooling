@@ -1,0 +1,52 @@
+; vim: filetype=gitconfig
+
+[user]
+    name = git
+    email = git@3x5y.art
+
+[init]
+    defaultBranch = main
+
+[core]
+    pager = less -R
+
+[push]
+    default = simple
+
+[color]
+    ui = auto
+
+; FG BG ATTR
+; normal black red green yellow blue magenta cyan white
+; bold dim ul blink reverse
+
+[color "branch"]
+    current = green bold reverse
+    local = blue
+    remote = yellow
+    upstream = cyan
+    plain = magenta
+
+[color "status"]
+    header = normal dim
+    branch = yellow reverse
+    added = green bold
+    changed = blue bold
+    untracked = cyan dim
+    nobranch = red white
+
+[color "diff"]
+    commit = yellow reverse
+    meta = yellow bold
+    frag = magenta
+    func = cyan dim
+    plain = normal dim
+    old = red bold
+    new = green bold
+    whitespace = red reverse
+
+[alias]
+    gl = log --graph --oneline --decorate
+    st = status
+    ci = commit
+    di = diff

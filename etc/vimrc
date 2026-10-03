@@ -1,0 +1,102 @@
+set nocompatible
+set softtabstop=4
+set shiftwidth=4
+set tabstop=4
+set autoindent
+set expandtab
+set ignorecase
+set smartcase
+set ruler
+set mouse=a
+set textwidth=80
+
+filetype plugin indent on
+
+" map esc
+inoremap kj <esc>
+" map esc and write (disabled as disruptive)
+" inoremap KJ <esc>:w<cr>
+" map write
+nnoremap W :w<cr>
+nnoremap Q :q<cr>
+
+" movement
+nnoremap H H0
+nnoremap M M0
+nnoremap L L0
+nnoremap F L<C-F><C-Y>M0
+vnoremap F L<C-F><C-Y>M0
+nnoremap B H<C-B><C-E>M0
+vnoremap B H<C-B><C-E>M0
+nnoremap z0 z.0
+
+" better scrolling in terminal
+noremap <ScrollWheelUp> <C-Y>
+noremap <ScrollWheelDown> <C-E>
+
+" tab size
+nnoremap <leader>2 :set ts=2 sts=2 sw=2<CR>
+nnoremap <leader>4 :set ts=4 sts=4 sw=4<CR>
+nnoremap <leader>6 :set ts=6 sts=6 sw=6<CR>
+nnoremap <leader>8 :set ts=8 sts=8 sw=8<CR>
+
+" quick edit .vimrc
+nnoremap <leader>ev :split $MYVIMRC<cr>G
+nnoremap <leader>sv :source $MYVIMRC<cr>
+
+" uppercase word
+inoremap <c-u> <esc>viwUea
+nnoremap <c-u> viwU
+
+" enclose word in ' or "
+nnoremap <leader>' viw<esc>a'<esc>bi'<esc>lel
+nnoremap <leader>" viw<esc>a"<esc>bi"<esc>lel
+
+" enclose selection in ', ", or `
+vnoremap <leader>' <esc>`>a'<esc>`<i'<esc>
+vnoremap <leader>" <esc>`>a"<esc>`<i"<esc>
+vnoremap <leader>` <esc>`>a`<esc>`<i`<esc>
+
+" chatgpt
+nnoremap ,# o## >> User<cr><cr><cr><cr>## >> Assistant<cr><cr><esc>kkkkI
+
+" insert date, time
+nnoremap <leader>d :.r!date -Isecond \| tr T ' '<cr>
+inoremap <c-d> <c-r>=system('date -Isecond\|tr T " "')->trim()<cr>
+
+" for vim-full
+if 1
+    syntax on
+
+    function! ToggleMouse()
+        if &mouse == "a"
+            set mouse=
+            echo "mouse off"
+        else
+            set mouse=a
+            echo "mouse on"
+        endif
+    endfunction
+
+    nnoremap <leader>m :call ToggleMouse()<CR>
+endif
+
+
+
+nnoremap <leader>f :Explore<cr>
+""" bufexplorer/bufmru config
+" allow switching modified buffers
+set hidden
+let g:bufExplorerShowRelativePath=1
+let g:bufExplorerSortBy='fullpath'
+"let g:bufExplorerSortBy='number'
+let g:bufExplorerSplitOutPathName=0
+let g:bufExplorerShowUnlisted=0
+let g:bufmru_switchkey="<tab>"
+nnoremap <space> :ToggleBufExplorer<CR>
+nnoremap <s-tab> :bu<space>
+" avoid E173 more files to edit message
+if argc() > 1
+  silent blast
+  silent bfirst
+endif

@@ -1,0 +1,403 @@
+
+# if not running interactively, do nothing
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+
+## functions
+
+
+_is_root() {
+    [[ $(id -u) -eq 0 ]]
+}
+
+
+_is_xterm() {
+    [[ $TERM =~ ^xterm|^rxvt ]]
+}
+
+
+_has_color() {
+    # trust these values
+    [[ $TERM =~ ^xterm-color$|-256color$ ]] && return 0
+
+    # fallback for other terminals
+    _has_exe tput && tput setaf 1 >&/dev/null
+}
+
+
+_has_exe() {
+    type -p "$1" &>/dev/null
+}
+
+
+_clear_termtitle() {
+    printf '\e]0;\a'
+}
+
+
+_do_bash_completion() {
+    shopt -oq posix && return
+    test "$BASH_COMPLETION_VERSINFO" && return
+
+    local f
+    local paths=(/usr/share/bash-completion/bash_completion
+                 /etc/bash_completion)
+    for f in "${paths[@]}"
+    do
+        test -f "$f" && echo "source $f" && return
+    done
+}
+
+
+_dirstack_list() {
+    local out=$(dirs -p | tail -n+2 | cat -n)
+    if [[ "$out" ]]
+    then
+        echo "$out"
+    else
+        return 1
+    fi
+}
+
+
+_dirstack_go() {
+    _pushd_rotate +$1
+}
+
+
+_dirstack_dispatch() {
+    local n
+    if [[ "$1" =~ ^[1-9][0-9]*$ ]]
+    then
+        _dirstack_go "$1"
+        return
+    fi
+    _dirstack_list || return 1
+    echo -n '> '
+    read -t 5 n || { echo; return; }
+    if [[ "$n" =~ ^[1-9][0-9]*$ && $n -gt 0 ]]
+    then
+        _dirstack_go $n >/dev/null
+    else
+        ! [[ "$n" ]]
+    fi
+}
+
+
+_up_list() {
+    local lines=$(echo "$PWD" | tr / \\n)
+    local n=$(echo "$lines" | wc -l)
+    ((n > 3)) || return 1
+    echo "$lines" | tail -n+2  | head -n $((n-2)) | tac | cat -n | tac
+}
+
+
+_up_go() {
+    local n=$1
+    local d=..
+    local m=$(echo "$PWD" | tr / \\n | wc -l)
+    ((n>m)) && n=$m
+    ((n<1)) && return 1
+    while [[ $((--n)) -gt 0 ]]
+    do
+        d="$d/.."
+    done
+    _cd_pushd $d
+}
+
+
+_up_dispatch() {
+    local n
+    if [[ "$1" =~ ^[1-9][0-9]*$ ]]
+    then
+        _up_go "$1"
+        return
+    fi
+    _up_list || { _cd_pushd ..; return; }
+    echo -n '> '
+    read -t 5 n || { echo; return; }
+    if [[ "$n" =~ ^[1-9][0-9]*$ && $n -gt 0 ]]
+    then
+        _up_go $n
+    else
+        ! [[ "$n" ]]
+    fi
+}
+
+
+_list_history() {
+    local n=${1:-20}
+    history $n
+}
+
+
+# bash implemntation of zsh functionality
+
+
+_cd_pushd() {
+    #builtin cd "$@" && _popd_uniq "$PWD" \
+    builtin cd "$@" \
+        && _popd_uniq "$PWD" >/dev/null \
+        && pushd -n "$OLDPWD" >/dev/null
+}
+
+
+_pushd_rotate() {
+        local n=$1
+        local d="${DIRSTACK[n]}"
+        popd -n +$n
+        pushd "$d"
+}
+
+
+_popd_uniq() {
+    local popped=0 i=0 d
+    for i in "${!DIRSTACK[@]}"
+    do
+        [[ $i -eq 0 ]] && continue
+        d=${DIRSTACK[i]}
+        #echo "$i: $d"
+        if [[ "$d" = "$1" ]]
+        then
+            #echo "popd -n +$i"
+            popd -n +$i
+            ((popped++))
+        fi
+    done
+
+    if (( $i - $popped > $DIRSTACKSIZE - 1))
+    then
+        #echo " (( $i - $popped > $DIRSTACKSIZE )) "
+        #echo "extra popd -n +$i"
+        popd -n +$i
+    fi
+}
+
+
+_init_color_prompt() {
+    local time='${_PROMPT_TIME}'
+    local end_bg='${_PROMPT_STATUS_BG}'
+    local end_fg='${_PROMPT_STATUS_FG}'
+    local path_esc="\e[48;5;${_PROMPT_PATH_BG}m\e[38;5;${_PROMPT_PATH_FG}m\e[1m"
+    local host_esc="\e[48;5;${_PROMPT_HOST_BG}m\e[38;5;${_PROMPT_HOST_FG}m\e[1m"
+    local time_esc="\e[48;5;${_PROMPT_TIME_BG}m\e[38;5;${_PROMPT_TIME_FG}m"
+    local end_esc="\e[48;5;${end_bg}m\e[38;5;${end_fg}m\e[1m"
+    local ps_reset='\[\e[0m\]'
+    local ps_path="\[$path_esc\]\w"
+    local ps_host="\[$host_esc\]\h:"
+    local ps_host="\[$host_esc\]$_PROMPT_HOST:"
+    local ps_time="\[$time_esc\]${time}"
+    local ps_end="\[$end_esc\]"'\$'
+    PS1="${ps_path}${ps_reset}\n${ps_time}${ps_host}${ps_end}${ps_reset} "
+    _USE_FANCY_PROMPT=1
+}
+
+
+_update_prompt_vars() {
+    [[ "$_USE_FANCY_PROMPT" ]] || return
+    if (( $_LAST_COMMAND_STATUS ))
+    then
+        _PROMPT_STATUS_BG=$_PROMPT_ERROR_BG
+        _PROMPT_STATUS_FG=$_PROMPT_ERROR_FG
+    else
+        _PROMPT_STATUS_BG=$_PROMPT_CHAR_BG
+        _PROMPT_STATUS_FG=$_PROMPT_CHAR_FG
+    fi
+    _PROMPT_TIME=$(date -u +%H:%M)
+}
+
+
+_prompt_command() {
+    _LAST_COMMAND_STATUS=$?
+    history -a
+    _update_prompt_vars
+}
+
+
+_config_ssh_host() {
+    local host=$1
+    local addr=$2
+    local user=${3:-$USER}
+    [ "$host" ] || { echo usage: "config-ssh-host host addr [user]"; return 1; }
+    [ "$addr" ] || { echo usage: "config-ssh-host host addr [user]"; return 1; }
+    if grep -qi "^ *host  *$host$" .ssh/config
+    then
+        echo "host entry exists in ~/.ssh/config; aborting"
+        return 1
+    fi
+    local keyfile=~/.ssh/id_${HOSTNAME}_$host_$(date +%Y%m%d)
+    [ -f $keyfile ] && { echo "$keyfile exists; aborting"; return 1; }
+    local comment="$HOSTNAME:$host"
+    local ssh_config="host $host
+    hostname $addr
+    identityfile $keyfile
+    user $user"
+    ssh-keygen -t ed25519 -f $keyfile -C "$comment"
+    echo "$ssh_config" >> ~/.ssh/config
+    ssh-copy-id -i $keyfile $host
+    echo "attempting to ssh to $host"
+    ssh $host
+}
+
+
+hashdir() {
+    (cd "$1" \
+        && find -type f -print0 \
+        | LANG=C sort -z \
+        | xargs -0 b3sum
+    ) | b3sum | cut -d' ' -f1
+}
+
+
+mksshkey() {
+    [ "$HOSTNAME" ] || { echo HOSTNAME not set >&2; return 1; }
+    [ "$1" ] || { echo require argument >&2; return 2; }
+    local arg=$1
+    local d=$(date +%Y%m%d)
+    local f="$d"_"$HOSTNAME"_$arg
+    local c="$d:$HOSTNAME:$arg"
+    local nl=$'\n'
+    local entry="host $arg$nl    identityfile ~/.ssh/$f"
+    local line vimline
+    if [ -s ~/.ssh/config ]
+    then
+        line=$(wc -l ~/.ssh/config | cut -d' ' -f1)
+        vimline=+$((line + 2))
+        entry="$nl$entry"
+    fi
+
+    ssh-keygen -t ed25519 -f ~/.ssh/"$f" -C "$c" \
+        && echo "$entry" >> ~/.ssh/config \
+        && vim ~/.ssh/config $vimline
+}
+
+
+confirm() {
+    read -p 'enter y to continue: ' && [[ $REPLY = y ]]
+}
+
+
+## general settings
+
+
+PS1='\u@\h:\w\$ '
+PROMPT_COMMAND=(_prompt_command)
+PROMPT_DIRTRIM=5
+HISTCONTROL=ignoreboth
+HISTSIZE=9999999
+HISTFILESIZE=999999999
+HISTTIMEFORMAT='%F %T '
+DIRSTACKSIZE=12
+
+# append rather than overwrite (but PROMPT_COMMAND calls `history -a`)
+shopt -s histappend
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# If set, the pattern "**" used in a pathname expansion context will
+# match all files and zero or more directories and subdirectories.
+#shopt -s globstar
+
+# make less more friendly for non-text input files, see lesspipe(1)
+#[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+
+# aliases
+
+
+alias grep='grep $_GREP_OPTS'
+alias egrep='egrep $_GREP_OPTS'
+alias fgrep='fgrep $_GREP_OPTS'
+alias ls='LC_COLLATE=C ls -lhF $_LS_OPTS'
+alias la='ls -A'
+alias lr='ls -ltrA'
+alias lc='ls -CA'
+alias rm='rm -i'
+alias mv='mv -i'
+alias cp='cp -i'
+alias cd='_cd_pushd'
+alias d=_dirstack_dispatch
+alias up=_up_dispatch
+alias h=_list_history
+alias mkpw='head -c 8 /dev/urandom | od -x | cut -c9- | tr " " .'
+alias config-ssh-host=_config_ssh_host
+alias rclone=/home/avdd/rclone-v1.64.0-linux-arm64/rclone
+alias hl='history|less +G'
+
+
+_PROMPT_PATH_BG=014
+_PROMPT_PATH_FG=004
+_PROMPT_TIME_BG=000
+_PROMPT_TIME_FG=250
+_PROMPT_HOST_BG=250
+_PROMPT_HOST_FG=004
+_PROMPT_CHAR_BG=157
+_PROMPT_CHAR_FG=034
+_PROMPT_ERROR_BG=196
+_PROMPT_ERROR_FG=226
+_PROMPT_HOST='\h'
+
+
+# local settings
+
+[[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
+
+
+# conditional settings
+
+eval $(_do_bash_completion)
+
+
+if _is_root
+then
+    _PROMPT_PATH_BG=252
+    _PROMPT_PATH_FG=160
+    _PROMPT_HOST_BG=220
+    _PROMPT_HOST_FG=160
+    _PROMPT_CHAR_BG=252
+    _PROMPT_CHAR_FG=160
+fi
+
+
+if _has_color
+then
+    _GREP_OPTS=--color=auto
+    _LS_OPTS=--color=auto
+    _init_color_prompt
+    _has_exe dircolors \
+        && eval "$(dircolors -b)"
+    _has_exe colordiff \
+        && alias diff=colordiff
+    alias diff='diff --color'
+fi
+
+
+if _is_xterm
+then
+    PS1='\[\e]0;\u@\h: \w\a\]'"$PS1"
+fi
+
+
+if type -t __vte_osc7 &>/dev/null
+then
+    PROMPT_COMMAND+=(__vte_osc7)
+fi
+
+if command ls --group-directories-first >/dev/null 2>&1
+then
+    #_LS_OPTS="$_LS_OPTS --group-directories-first"
+    alias lg='la --group-directories-first'
+fi
+
+if [ -d "$HOME/z/admin/tooling/bin" ] ; then
+    PATH="$HOME/z/admin/tooling/bin":$PATH
+fi
+
+if [ -d "$HOME/z/admin/private/bin" ] ; then
+    PATH="$HOME/z/admin/private/bin":$PATH
+fi
