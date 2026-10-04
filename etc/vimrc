@@ -82,7 +82,6 @@ if 1
 endif
 
 
-
 nnoremap <leader>f :Explore<cr>
 """ bufexplorer/bufmru config
 " allow switching modified buffers
@@ -93,7 +92,7 @@ let g:bufExplorerSortBy='fullpath'
 let g:bufExplorerSplitOutPathName=0
 let g:bufExplorerShowUnlisted=0
 let g:bufmru_switchkey="<tab>"
-nnoremap <space> :ToggleBufExplorer<CR>
+nnoremap <silent> <space> :ToggleBufExplorer<CR>
 nnoremap <s-tab> :bu<space>
 " avoid E173 more files to edit message
 if argc() > 1
