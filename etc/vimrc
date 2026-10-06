@@ -14,6 +14,7 @@ filetype plugin indent on
 
 " map esc
 inoremap kj <esc>
+vnoremap kj <esc>
 " map esc and write (disabled as disruptive)
 " inoremap KJ <esc>:w<cr>
 " map write
