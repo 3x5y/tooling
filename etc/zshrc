@@ -1,0 +1,226 @@
+
+# functions
+
+
+_is_xterm() {
+    [[ $TERM =~ ^(xterm|rxvt) ]]
+}
+
+
+_has_color() {
+    # trust these values
+    [[ $TERM =~ (^xterm-color|-256color)$ ]] && return 0
+
+    # fallback for other terminals
+    _has_exe tput && tput setaf 1 >&/dev/null
+}
+
+
+_has_exe() {
+    type -p "$1" &>/dev/null
+}
+
+
+_clear_termtitle() {
+    printf '\e]0;\a'
+}
+
+
+_dirstack_list() {
+    local out=$(dirs -p | tail -n+2 | cat -n)
+    if [[ "$out" ]]
+    then
+        echo "$out"
+    else
+        return 1
+    fi
+}
+
+
+_dirstack_go() {
+    pushd +$1
+}
+
+
+_dirstack_dispatch() {
+    local n
+    if [[ "$1" =~ ^[1-9][0-9]*$ ]]
+    then
+        _dirstack_go "$1"
+        return
+    fi
+    _dirstack_list || return 1
+    echo -n '> '
+    read -t 5 n || { echo; return; }
+    if [[ "$n" =~ ^[1-9][0-9]*$ && $n -gt 0 ]]
+    then
+        _dirstack_go $n >/dev/null
+    else
+        ! [[ "$n" ]]
+    fi
+}
+
+
+_up_list() {
+    local lines=$(echo "$PWD" | tr / \\n)
+    local n=$(echo "$lines" | wc -l)
+    ((n > 3)) || return 1
+    echo "$lines" | tail -n+2  | head -n $((n-2)) | tac | cat -n | tac
+}
+
+
+_up_go() {
+    local n=$1
+    local d=..
+    local m=$(echo "$PWD" | tr / \\n | wc -l)
+    ((n>m)) && n=$m
+    ((n<1)) && return 1
+    while [[ $((--n)) -gt 0 ]]
+    do
+        d="$d/.."
+    done
+    cd $d
+}
+
+
+_up_dispatch() {
+    local n
+    if [[ "$1" =~ ^[1-9][0-9]*$ ]]
+    then
+        _up_go "$1"
+        return
+    fi
+    _up_list || { cd ..; return; }
+    echo -n '> '
+    read -t 5 n || { echo; return; }
+    if [[ "$n" =~ ^[1-9][0-9]*$ && $n -gt 0 ]]
+    then
+        _up_go $n
+    else
+        ! [[ "$n" ]]
+    fi
+}
+
+
+_list_history() {
+    local n=${1:-20}
+    history $n
+}
+
+
+_init_color_prompt() {
+
+    local time='$_PROMPT_TIME'
+    local char_bg='${_PROMPT_STATUS_BG}'
+    local char_fg='${_PROMPT_STATUS_FG}'
+    local ps_path="%K{$_PROMPT_PATH_BG}%F{$_PROMPT_PATH_FG}%B%9~%f%k%b"
+    local ps_host="%K{$_PROMPT_HOST_BG}%F{$_PROMPT_HOST_FG}%B${_PROMPT_HOST}:%b%f%k"
+    local ps_time="%K{$_PROMPT_TIME_BG}%F{$_PROMPT_TIME_FG}$time%f%k"
+    local ps_char="%K{$char_bg}%F{$char_fg}%B%#%b%f%k"
+    local nl=$'\n'
+    local end=' '
+    PROMPT="${ps_path}${nl}${ps_time}${ps_host}${ps_char}${end}"
+    _USE_FANCY_PROMPT=1
+}
+
+
+_update_prompt_vars() {
+    [[ "$_USE_FANCY_PROMPT" ]] || return
+    if (( $_LAST_COMMAND_STATUS ))
+    then
+        _PROMPT_STATUS_BG=$_PROMPT_ERROR_BG
+        _PROMPT_STATUS_FG=$_PROMPT_ERROR_FG
+    else
+        _PROMPT_STATUS_BG=$_PROMPT_CHAR_BG
+        _PROMPT_STATUS_FG=$_PROMPT_CHAR_FG
+    fi
+    _PROMPT_TIME=$(date -u +%H:%M)
+}
+
+
+_set_command_status() {
+    _LAST_COMMAND_STATUS=$?
+}
+
+
+# general settings
+
+
+setopt HIST_IGNORE_SPACE
+setopt HIST_IGNORE_DUPS
+setopt HIST_SAVE_NO_DUPS
+setopt HIST_NO_FUNCTIONS
+setopt HIST_NO_STORE
+setopt HIST_REDUCE_BLANKS
+setopt EXTENDED_HISTORY
+setopt INC_APPEND_HISTORY
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+setopt PUSHD_SILENT
+setopt PROMPT_SUBST
+
+HISTSIZE=9999999
+SAVEHIST=999999999
+DIRSTACKSIZE=13
+
+autoload -U compinit && compinit
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+
+bindkey '^[[A' up-line-or-search
+bindkey '^[[B' down-line-or-search
+#bindkey '^[[A' history-substring-search-up
+#bindkey '^[[B' history-substring-search-down
+
+add-zsh-hook precmd _set_command_status
+add-zsh-hook precmd _update_prompt_vars
+add-zsh-hook precmd _clear_termtitle
+
+# aliases
+
+
+alias grep='grep $_OPT_COLOR'
+alias egrep='egrep $_OPT_COLOR'
+alias fgrep='fgrep $_OPT_COLOR'
+alias ls='ls -lhF $_OPT_COLOR'
+alias la='ls -A'
+alias lr='ls -ltrA'
+alias lc='ls -CA'
+alias rm='rm -i'
+alias mv='mv -i'
+alias cp='cp -i'
+alias d=_dirstack_dispatch
+alias up=_up_dispatch
+alias h='fc -ldi'
+
+alias jot=~/jot.sh
+alias jots=~/latest-jot.sh
+alias dfh='df -H | sed -r "s/^(.{15}).{35}/\1/g" | sed -r "s/.Volumes.*TimeMachine.*2024/..2024/"'
+alias tac='tail -r'
+alias eject='diskutil eject'
+
+
+# common
+_PROMPT_HOST=%m
+_PROMPT_PATH_BG=153
+_PROMPT_PATH_FG=018
+_PROMPT_TIME_BG=255
+_PROMPT_TIME_FG=240
+_PROMPT_HOST_BG=195
+_PROMPT_HOST_FG=039
+_PROMPT_CHAR_BG=157
+_PROMPT_CHAR_FG=034
+_PROMPT_ERROR_BG=196
+_PROMPT_ERROR_FG=226
+
+# local
+_PROMPT_HOST_BG=195
+_PROMPT_HOST_FG=039
+_PROMPT_HOST=aer
+
+
+if _has_color
+then
+    export COLORTERM=1
+    _OPT_COLOR=--color=auto
+    _init_color_prompt
+fi
