@@ -1,0 +1,11 @@
+include ~/.ssh/config.d/*.conf
+include ~/.ssh/local.conf
+include ~/.ssh/keys.conf
+
+host *
+    identitiesonly yes
+    controlpath ~/.ssh/s.%r@%h:%p
+    controlpersist 15m
+
+
+
