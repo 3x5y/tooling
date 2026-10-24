@@ -33,8 +33,9 @@ cd ~/z/admin/tooling
 
 * Install public SSH configuration and trusted host keys.
 * Verify the PILO server host key against a fingerprint obtained independently.
-* Generate or restore the client SSH key.
-* Authorize the public key on PILO.
+* Generate or restore the client SSH key: use `mksshkey.sh`
+  **NB this is not idempotent!**
+* Authorize the public key on PILO: use `ssh-copy-id`
 * Verify access: `ssh pilo`.
 
 ## 4. Canonical repositories
@@ -47,12 +48,10 @@ git remote add canonical pi10:/z/admin/tooling.git
 git config remote.pushDefault canonical
 ```
 
-Clone and install private configuration:
+Optionally clone and install private configuration:
 
 ```sh
 git clone pi10:/z/admin/private.git ~/z/admin/private
-cd ~/z/admin/private
-./install.sh
 ```
 
 * Retain the public HTTPS remote for bootstrap and mirroring.
