@@ -64,8 +64,8 @@ vnoremap <leader>` <esc>`>a`<esc>`<i`<esc>
 nnoremap ,# o## >> User<cr><cr><cr><cr>## >> Assistant<cr><cr><esc>kkkkI
 
 " insert date, time
-nnoremap <leader>d :.r!date -Isecond \| tr T ' '<cr>
-inoremap <c-d> <c-r>=system('date -Isecond\|tr T " "')->trim()<cr>
+nnoremap <leader>d :.r!date -Iseconds \| tr T ' '<cr>
+inoremap <c-d> <c-r>=system('date -Iseconds\|tr T " "')->trim()<cr>
 
 " for vim-full
 if 1
