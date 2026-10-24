@@ -22,14 +22,16 @@ nnoremap W :w<cr>
 nnoremap Q :q<cr>
 
 " movement
-nnoremap H H0
-nnoremap M M0
-nnoremap L L0
-nnoremap F L<C-F><C-Y>M0
-vnoremap F L<C-F><C-Y>M0
-nnoremap B H<C-B><C-E>M0
-vnoremap B H<C-B><C-E>M0
-nnoremap z0 z.0
+"nnoremap F L<C-F><C-Y>M0
+"vnoremap F L<C-F><C-Y>M0
+"nnoremap B H<C-B><C-E>M0
+"vnoremap B H<C-B><C-E>M0
+"nnoremap F Lzz
+"vnoremap F Lzz
+"nnoremap B Hzz
+"vnoremap B Hzz
+nnoremap F <C-E>
+nnoremap B <C-Y>
 
 " better scrolling in terminal
 noremap <ScrollWheelUp> <C-Y>
