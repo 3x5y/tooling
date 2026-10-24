@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SRC=z/admin/tooling
+SRC=~/z/admin/tooling
 
 symlink() {
     src=$1
@@ -27,13 +27,17 @@ symlink() {
     ln -sv "$src" "$dst"
 }
 
-symlink "$SRC"/etc/bashrc  "$HOME"/.bashrc
-symlink "$SRC"/etc/zshrc   "$HOME"/.zshrc
-symlink "$SRC"/etc/inputrc "$HOME"/.inputrc
-symlink "$SRC"/etc/vimrc   "$HOME"/.vimrc
-symlink "$SRC"/etc/gitconfig "$HOME"/.gitconfig
+symlink "$SRC"/etc/bashrc  ~/.bashrc
+symlink "$SRC"/etc/zshrc   ~/.zshrc
+symlink "$SRC"/etc/inputrc ~/.inputrc
+symlink "$SRC"/etc/vimrc   ~/.vimrc
+symlink "$SRC"/etc/gitconfig ~/.gitconfig
 
 mkdir -p ~/.ssh
 chmod 700 ~/.ssh
-symlink ~/"$SRC"/etc/ssh/config "$HOME"/.ssh/config
-symlink ~/"$SRC"/etc/ssh/config.d "$HOME"/.ssh/config.d
+symlink "$SRC"/etc/ssh/config ~/.ssh/config
+symlink "$SRC"/etc/ssh/config.d ~/.ssh/config.d
+
+mkdir -p ~/.vim
+symlink "$SRC"/etc/vim/plugin ~/.vim/plugin
+symlink "$SRC"/etc/vim/pack   ~/.vim/pack
