@@ -310,6 +310,7 @@ shopt -s checkwinsize
 # aliases
 
 
+alias sush='sudo bash --rcfile ~/.bashrc'
 alias grep='grep $_GREP_OPTS'
 alias egrep='egrep $_GREP_OPTS'
 alias fgrep='fgrep $_GREP_OPTS'
@@ -346,6 +347,14 @@ _PROMPT_HOST='\h'
 # local settings
 
 [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
+
+
+# readline
+
+bind 'set completion-ignore-case on'
+bind 'set show-all-if-ambiguous on'
+bind '"\e[A":history-search-backward'
+bind '"\e[B":history-search-forward'
 
 
 # conditional settings
